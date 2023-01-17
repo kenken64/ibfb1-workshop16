@@ -13,10 +13,15 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.JdkSerializationRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializer;
+import org.springframework.data.redis.serializer.SerializationException;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
-import sg.edu.nus.iss.app.workshop16.model.Mastermind;
+import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper.DefaultTyping;
 
+import sg.edu.nus.iss.app.workshop16.model.Mastermind;
 
 @Configuration
 public class RedisConfig {
@@ -35,43 +40,71 @@ public class RedisConfig {
     @Value("${spring.redis.password}")
     private String redisPassword;
 
-
     // define the return redis template bean as single Object
     // throughout the runtime.
     // Return the RedisTemplate
     @Bean
     @Scope("singleton")
-    public RedisTemplate<String, Mastermind> redisTemplate(){
-        final RedisStandaloneConfiguration config 
-                = new RedisStandaloneConfiguration();
+    public RedisTemplate<String, Object> redisTemplate() {
+        final RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
 
         config.setHostName(redisHost);
         config.setPort(redisPort.get());
-        
-        if(!redisUsername.isEmpty() && !redisPassword.isEmpty()){
+
+        if (!redisUsername.isEmpty() && !redisPassword.isEmpty()) {
             config.setUsername(redisUsername);
             config.setPassword(redisPassword);
         }
         config.setDatabase(0);
 
         final JedisClientConfiguration jedisClient = JedisClientConfiguration
-                                        .builder()
-                                        .build();
-        final JedisConnectionFactory jedisFac= 
-                            new JedisConnectionFactory(config, jedisClient);
+                .builder()
+                .build();
+        final JedisConnectionFactory jedisFac = new JedisConnectionFactory(config, jedisClient);
         jedisFac.afterPropertiesSet();
-        RedisTemplate<String, Mastermind> redisTemplate = 
-                    new RedisTemplate<String, Mastermind>();
+        RedisTemplate<String, Object> redisTemplate = new RedisTemplate<String, Object>();
         // associate with the redis connection
         redisTemplate.setConnectionFactory(jedisFac);
-        Jackson2JsonRedisSerializer jackson2Serializer = new Jackson2JsonRedisSerializer(Mastermind.class);
-        
+
         redisTemplate.setKeySerializer(new StringRedisSerializer());
         // set the map key/value serialization type to String
         redisTemplate.setHashKeySerializer(redisTemplate.getKeySerializer());
-        redisTemplate.setValueSerializer(jackson2Serializer);
-        redisTemplate.setHashValueSerializer(jackson2Serializer);
-        
+        redisTemplate.setValueSerializer(new JsonRedisSerializer());
+        redisTemplate.setHashValueSerializer(new JsonRedisSerializer());
+
         return redisTemplate;
+    }
+
+    static class JsonRedisSerializer implements RedisSerializer<Object> {
+
+        private final ObjectMapper om;
+
+        public JsonRedisSerializer() {
+            this.om = new ObjectMapper().enableDefaultTyping(DefaultTyping.NON_FINAL, As.PROPERTY);
+
+        }
+
+        @Override
+        public byte[] serialize(Object t) throws SerializationException {
+            try {
+                return om.writeValueAsBytes(t);
+            } catch (JsonProcessingException e) {
+                throw new SerializationException(e.getMessage(), e);
+            }
+        }
+
+        @Override
+        public Object deserialize(byte[] bytes) throws SerializationException {
+
+            if (bytes == null) {
+                return null;
+            }
+
+            try {
+                return om.readValue(bytes, Object.class);
+            } catch (Exception e) {
+                throw new SerializationException(e.getMessage(), e);
+            }
+        }
     }
 }
