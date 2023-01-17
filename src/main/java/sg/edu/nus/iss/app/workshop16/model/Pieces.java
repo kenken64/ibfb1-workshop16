@@ -2,17 +2,22 @@ package sg.edu.nus.iss.app.workshop16.model;
 
 import java.io.Serializable;
 
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
+
 public class Pieces implements Serializable{
-    private DecodingBoard decodingBoard;
+    private DecodingBoard decoding_board;
     private Pegs pegs;
     private Rulebook rulebook;
 
-    public DecodingBoard getDecodingBoard() {
-        return decodingBoard;
+    public DecodingBoard getDecoding_board() {
+        return decoding_board;
     }
-    public void setDecodingBoard(DecodingBoard decodingBoard) {
-        this.decodingBoard = decodingBoard;
-    }
+    public void setDecoding_board(DecodingBoard decoding_board) {
+        this.decoding_board = decoding_board;
+    }  
+
     public Pegs getPegs() {
         return pegs;
     }
@@ -26,5 +31,10 @@ public class Pieces implements Serializable{
         this.rulebook = rulebook;
     }
 
-
+    public JsonObjectBuilder toJSON(){
+        return Json.createObjectBuilder()
+                .add("decoding_board", this.getDecoding_board().toJSON())
+                .add("pegs", this.getPegs().toJSON())
+                .add("rulebook", this.getRulebook().toJSON());      
+    }
 }
