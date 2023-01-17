@@ -10,9 +10,12 @@ import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.jedis.JedisClientConfiguration;
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.JdkSerializationRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
+
+import sg.edu.nus.iss.app.workshop16.model.Mastermind;
 
 
 @Configuration
@@ -38,14 +41,12 @@ public class RedisConfig {
     // Return the RedisTemplate
     @Bean
     @Scope("singleton")
-    public RedisTemplate<String, Object> redisTemplate(){
+    public RedisTemplate<String, Mastermind> redisTemplate(){
         final RedisStandaloneConfiguration config 
                 = new RedisStandaloneConfiguration();
 
         config.setHostName(redisHost);
         config.setPort(redisPort.get());
-        System.out.println(redisUsername);
-        System.out.println(redisPassword);
         
         if(!redisUsername.isEmpty() && !redisPassword.isEmpty()){
             config.setUsername(redisUsername);
@@ -59,19 +60,17 @@ public class RedisConfig {
         final JedisConnectionFactory jedisFac= 
                             new JedisConnectionFactory(config, jedisClient);
         jedisFac.afterPropertiesSet();
-        RedisTemplate<String, Object> redisTemplate = 
-                    new RedisTemplate<String, Object>();
+        RedisTemplate<String, Mastermind> redisTemplate = 
+                    new RedisTemplate<String, Mastermind>();
         // associate with the redis connection
         redisTemplate.setConnectionFactory(jedisFac);
+        Jackson2JsonRedisSerializer jackson2Serializer = new Jackson2JsonRedisSerializer(Mastermind.class);
+        
         redisTemplate.setKeySerializer(new StringRedisSerializer());
         // set the map key/value serialization type to String
-        redisTemplate.setHashKeySerializer(new StringRedisSerializer());
-        // enable redis to store java object on the value column
-        RedisSerializer<Object> objSerializer 
-                = new JdkSerializationRedisSerializer(getClass().getClassLoader());
-
-        redisTemplate.setValueSerializer(objSerializer);
-        redisTemplate.setHashValueSerializer(objSerializer);
+        redisTemplate.setHashKeySerializer(redisTemplate.getKeySerializer());
+        redisTemplate.setValueSerializer(jackson2Serializer);
+        redisTemplate.setHashValueSerializer(jackson2Serializer);
         
         return redisTemplate;
     }

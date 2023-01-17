@@ -1,12 +1,10 @@
 package sg.edu.nus.iss.app.workshop16.model;
 
 import java.io.Serializable;
-import java.util.List;
 import java.util.Random;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
-import jakarta.json.JsonObjectBuilder;
 
 public class Mastermind implements Serializable{
     private String name;
@@ -72,9 +70,20 @@ public class Mastermind implements Serializable{
                 .add("name", this.getName())
                 .add("pieces", this.getPieces().toJSON())
                 .add("id", this.getId())
-                .add("insertCount", this.getInsertCount())
-                .add("updateCount", this.getUpdateCount())
-                .add("isUpSert", this.isUpSert())
+                .build();
+    }
+
+    public JsonObject toJSONInsert(){
+        return Json.createObjectBuilder()
+                .add("id", this.getId())
+                .add("insert_count", this.getInsertCount())
+                .build();
+    }  
+
+    public JsonObject toJSONUpdate(){
+        return Json.createObjectBuilder()
+                .add("id", this.getId())
+                .add("update_count", this.getUpdateCount())
                 .build();
     }  
 
